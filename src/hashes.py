@@ -54,12 +54,12 @@ class MinHash(object):
                 "Cannot compute Jaccard given MinHash with different numbers "
                 "of permutation functions"
             )
-        numerator = np.count_nonzero(self.hashvalues == other.hashvalues)
+        numerator = np.count_nonzero(self.hash_values == other.hash_values)
         denominator = np.float(len(self))
         return np.float(numerator / denominator)
 
     def clear(self):
-        self.hashvalues = self._init_hashvalues(len(self))
+        self.hash_values = self._init_hashvalues(len(self))
 
     def __len__(self):
         return len(self.hash_values)
