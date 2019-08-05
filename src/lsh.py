@@ -98,6 +98,10 @@ class MinHashLSH(object):
             hashtable[H].append(key)
         self._min_hashes[key] = minhash
 
+    def batch_add(self, minhashes: dict):
+        for key, minhash in minhashes.items():
+            self.add(key, minhash)
+
     def index(self):
         for i, hashtable in enumerate(self.hash_tables):
             self.sorted_hash_tables[i] = [H for H in hashtable.keys()]
