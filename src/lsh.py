@@ -1,7 +1,10 @@
 from collections import defaultdict
 from operator import itemgetter
 
+import numpy as np
+
 from settings import INTEGRATION_PRECISON
+from src.utils import nnz
 
 
 def _integration(f, a, b):
@@ -165,3 +168,78 @@ class MinHashLSH(object):
 
     def __contains__(self, key):
         return key in self.keys
+
+
+class CosineLSH(object):
+    def __init__(
+        self, hash_size=10, input_dim=100, num_tables=10, max_candidates_ratio=3
+    ):
+        self.hash_size = hash_size
+        self.input_dim = input_dim
+        self.num_tables = num_tables
+        self.max_candidates = max_candidates_ratio * self.num_tables
+        self.hash_tables = [defaultdict(list) for _ in range(self.num_tables)]
+        self.is_similarity = True
+        self.keys = dict()
+        self._init_hyperplanes()
+
+    def _init_hyperplanes(self):
+        self._random_hyperplanes = [
+            self._generate_random_vectors() for _ in range(self.num_tables)
+        ]
+
+    def _generate_random_vectors(self):
+        return np.random.randn(self.hash_size, self.input_dim)
+
+    def _hash(self, x, planes):
+        projections = np.dot(planes, x)
+        _hash = 0
+        for projection in projections:
+            _hash = _hash << 1
+            if projection >= 0:
+                _hash |= 1
+        return _hash
+
+    def cosine_distance(self, x, y):
+        xor = x ^ y
+        number_of_ones = nnz(xor)
+        return (self.hash_size - number_of_ones) / self.hash_size
+
+    def query(self, point, k):
+        if k <= 0:
+            raise ValueError("k must be positive")
+        if len(point) != self.input_dim:
+            raise ValueError("Dimensions should match.")
+
+        candidates = []
+        hashes = []
+        for i, table in enumerate(self.hash_tables):
+            binary_hash = self._hash(point, self._random_hyperplanes[i])
+            hashes.append(binary_hash)
+            candidates.extend(table.get(binary_hash, []))
+            if len(candidates) >= max(k, self.max_candidates):
+                break
+        # Sort according to a similarity
+        candidates = list(set(candidates))
+        similarities = []
+        for key in candidates:
+            sim = 0
+            for k, hash_code in enumerate(hashes):
+                sim += (
+                    self.cosine_distance(hash_code, self.keys[key][k]) * self.hash_size
+                )
+            sim /= len(hashes) * self.hash_size
+            similarities.append((sim, key))
+        similarities.sort(key=itemgetter(0), reverse=self.is_similarity)
+        return [item[-1] for item in similarities[:k]]
+
+    def index(self, key, point):
+        self.keys[key] = [
+            self._hash(point, planes) for planes in self._random_hyperplanes
+        ]
+        for H, hashtable in zip(self.keys[key], self.hash_tables):
+            hashtable[H].append(key)
+
+    def batch_index(self, points: dict):
+        for key, point in points.items():
+            self.index(key, point)

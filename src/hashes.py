@@ -1,6 +1,7 @@
 import numpy as np
 
 from settings import MAX_HASH, MERSENNE_PRIME, HASH_RANGE
+from src.utils import bytes_to_sha_256_int
 
 
 class MinHash(object):
@@ -8,8 +9,8 @@ class MinHash(object):
         self,
         seed=1,
         num_permutations=100,
+        hash_function=bytes_to_sha_256_int,
         permutations=None,
-        hash_function=None,
         hash_values=None,
     ):
         self.seed = seed
