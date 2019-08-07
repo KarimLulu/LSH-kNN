@@ -207,7 +207,7 @@ class CosineLSH(object):
 
     def query(self, point, k):
         if k <= 0:
-            raise ValueError("k must be positive")
+            raise ValueError("k must be positive.")
         if len(point) != self.input_dim:
             raise ValueError("Dimensions should match.")
 
